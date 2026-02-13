@@ -1,0 +1,17 @@
+* {
+  border: 1px solid black;
+}
+
+.card {
+  display: flex;
+  justify-content: space-evenly;
+  align-items: center;
+}
+.card__image {
+  width: 200px;
+}
+.card__text {
+  background-color: #3498db;
+}
+
+/*# sourceMappingURL=style.css.map */

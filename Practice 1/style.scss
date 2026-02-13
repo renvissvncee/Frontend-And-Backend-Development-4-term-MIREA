@@ -1,0 +1,28 @@
+$primary: #3498db;
+$theme: dark;
+
+* {
+    border: 1px solid black;
+}
+
+@mixin text($color) {
+    background-color: $primary;
+}
+
+@mixin card() {
+    display:flex;
+    justify-content: space-evenly;
+    align-items: center;
+}
+
+.card {
+    @include card();
+
+    &__image {
+        width:200px;
+    }
+
+    &__text {
+    @include text($primary);
+    }
+}
