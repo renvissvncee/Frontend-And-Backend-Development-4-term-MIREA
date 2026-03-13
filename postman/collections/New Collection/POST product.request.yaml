@@ -1,0 +1,5 @@
+$kind: http-request
+name: POST product
+url: ""
+method: GET
+order: 1929688334817099
