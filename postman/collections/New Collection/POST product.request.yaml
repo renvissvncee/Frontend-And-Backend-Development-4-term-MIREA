@@ -1,5 +1,8 @@
 $kind: http-request
 name: POST product
-url: ""
-method: GET
+url: http://localhost:3000/products
+method: POST
+body:
+  type: json
+  content: '{"title": "Мотоцикл", "price": 100000}'
 order: 1929688334817099

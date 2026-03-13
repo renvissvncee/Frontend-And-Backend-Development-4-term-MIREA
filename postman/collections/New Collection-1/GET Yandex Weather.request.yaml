@@ -1,0 +1,5 @@
+$kind: http-request
+name: GET Yandex Weather
+url: ""
+method: GET
+order: 4419679302486464

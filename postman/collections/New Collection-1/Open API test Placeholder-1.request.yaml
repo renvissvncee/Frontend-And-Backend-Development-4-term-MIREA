@@ -1,0 +1,5 @@
+$kind: http-request
+name: Open API test Placeholder
+url: ""
+method: GET
+order: 4493414600427848
