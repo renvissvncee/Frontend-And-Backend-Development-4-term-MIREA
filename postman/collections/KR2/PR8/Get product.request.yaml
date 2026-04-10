@@ -1,0 +1,7 @@
+$kind: http-request
+name: Get product
+url: http://localhost:3000/api/products/:id
+method: GET
+pathVariables:
+  id: _kjWg
+order: 4469945058184678

@@ -1,0 +1,8 @@
+$kind: http-request
+name: New Request
+url: http://localhost:3000/products/1
+method: PATCH
+body:
+  type: json
+  content: ""
+order: 2484931571694039

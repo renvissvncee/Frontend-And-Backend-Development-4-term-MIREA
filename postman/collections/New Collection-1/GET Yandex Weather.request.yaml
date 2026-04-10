@@ -1,5 +1,10 @@
 $kind: http-request
 name: GET Yandex Weather
-url: ""
+url: https://api.weather.yandex.ru/v2/forecast?lat=52.37125&lon=4.89388
 method: GET
+headers:
+  X-Yandex-Weather-Key: cb0330ba-0322-4438-8b40-6fce3bb8ee50
+queryParams:
+  lat: "52.37125"
+  lon: "4.89388"
 order: 4419679302486464

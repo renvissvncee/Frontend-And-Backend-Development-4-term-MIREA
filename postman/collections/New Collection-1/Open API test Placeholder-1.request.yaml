@@ -1,5 +1,5 @@
 $kind: http-request
 name: Open API test Placeholder
-url: ""
+url: https://jsonplaceholder.typicode.com/posts
 method: GET
 order: 4493414600427848

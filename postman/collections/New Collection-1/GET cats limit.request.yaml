@@ -1,5 +1,7 @@
 $kind: http-request
 name: GET cats limit
-url: ""
+url: https://api.thecatapi.com/v1/images/search?limit=3
 method: GET
+queryParams:
+  limit: "3"
 order: 3003254759157136

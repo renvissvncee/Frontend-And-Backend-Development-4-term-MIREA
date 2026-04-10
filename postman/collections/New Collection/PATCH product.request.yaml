@@ -1,5 +1,0 @@
-$kind: http-request
-name: PATCH product
-url: ""
-method: GET
-order: 2188321109996404

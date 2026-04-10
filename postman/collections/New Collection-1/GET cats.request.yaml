@@ -1,5 +1,5 @@
 $kind: http-request
 name: GET cats
-url: ""
+url: https://api.thecatapi.com/v1/images/search
 method: GET
 order: 1773396501772
