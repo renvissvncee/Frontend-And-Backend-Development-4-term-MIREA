@@ -1,0 +1,48 @@
+.UserDetailCard {
+    max-width: 500px;
+    margin: 40px auto;
+    padding: 20px;
+
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    background-color: #ffffff;
+}
+
+.UserDetailCard div {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.UserDetailCard p {
+    margin: 0;
+    font-size: 16px;
+    color: #333;
+}
+
+.UserDetailCard p:first-child {
+    font-size: 20px;
+    font-weight: bold;
+}
+
+button {
+    display: block;
+    margin: 20px auto 0;
+    padding: 10px 16px;
+
+    border: none;
+    border-radius: 8px;
+
+    background-color: #4CAF50;
+    color: white;
+
+    cursor: pointer;
+    font-size: 14px;
+}
+
+button:hover {
+    background-color: #45a049;
+    transition: 0.2s;
+}

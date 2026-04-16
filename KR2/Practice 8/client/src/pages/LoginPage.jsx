@@ -11,6 +11,7 @@ function LoginPage() {
     const [password, setPassword] = useState("");
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [profile, setProfile] = useState(undefined);
+    const [profileIsOpen, setProfileIsOpen] = useState(false);
 
     async function handleClick(e) {
         e.preventDefault();
@@ -19,7 +20,8 @@ function LoginPage() {
                 login: login,
                 password: password
             });
-            setTokens(response.data.accessToken, response.data.refreshToken)
+            setTokens(response.data.accessToken, response.data.refreshToken);
+            getProfile();
             setIsAuthenticated(true);
             console.log(response.data);
         } catch (err) {
@@ -55,20 +57,29 @@ function LoginPage() {
             {isAuthenticated && (
                 <div>
                     <div>
-                        <button type="button" onClick={getProfile}>Получить профиль</button>
+                        <button type="button" onClick={() => setProfileIsOpen(!profileIsOpen)}>Получить профиль</button>
                     </div>
-                    {profile && (
+                    {profileIsOpen && (
                         <div>
                             <p>ID: {profile.id}</p>
                             <p>Email: {profile.email}</p>
                             <p>Имя: {profile.first_name}</p>
                             <p>Фамилия: {profile.last_name}</p>
+                            <p>Роль: {profile.role}</p>
                         </div>
                     )}
+
                     <div>
                         <br></br>
                         <button type="button" onClick={() => navigate("/products")}>Перейти к товарам</button>
                     </div>
+
+                    {profile && profile.role === "admin" && (
+                        <div>
+                            <br></br>
+                            <button type="button" onClick={() => navigate("/admin-panel/users")}>Перейти к пользователям</button>
+                        </div>
+                    )}
                 </div>
             )}
         </>

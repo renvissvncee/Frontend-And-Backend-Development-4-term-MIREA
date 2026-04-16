@@ -139,30 +139,30 @@ pages/ProductListPage.jsx
 pages/ProductDetailPage.jsx
 ```
 
-* [ ] GET `/api/products/:id`
-* [ ] показать данные товара
+* [+] GET `/api/products/:id`
+* [+] показать данные товара
 
 ---
 
 ## ⬜ 13. CreateProductPage
 
-* [ ] форма: title, category, description, price
-* [ ] POST `/api/products`
-* [ ] обновить список
+* [+] форма: title, category, description, price
+* [+] POST `/api/products`
+* [+] обновить список
 
 ---
 
 ## ⬜ 14. UpdateProduct
 
-* [ ] форма редактирования
-* [ ] PUT `/api/products/:id`
+* [+] форма редактирования
+* [+] PUT `/api/products/:id`
 
 ---
 
 ## ⬜ 15. DeleteProduct
 
-* [ ] кнопка удаления
-* [ ] DELETE `/api/products/:id`
+* [+] кнопка удаления
+* [+] DELETE `/api/products/:id`
 
 ---
 
