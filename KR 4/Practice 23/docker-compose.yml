@@ -1,0 +1,32 @@
+services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - app-network
+    depends_on:
+      - server1
+      - server2
+      - server3
+
+  server1:
+    build: ./server1
+    networks:
+      - app-network
+
+  server2:
+    build: ./server2
+    networks:
+      - app-network
+
+  server3:
+    build: ./server3
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

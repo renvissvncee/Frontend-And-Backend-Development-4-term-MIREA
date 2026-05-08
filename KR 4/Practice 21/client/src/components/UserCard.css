@@ -1,0 +1,19 @@
+.userCard {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap; /* главное */
+
+    width: 100%;
+    padding: 14px 18px;
+
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    background: white;
+}
+
+.userCard:hover {
+    background-color: #f5f5f5;
+    transform: scale(1.02);
+}

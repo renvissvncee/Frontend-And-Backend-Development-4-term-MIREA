@@ -1,0 +1,5 @@
+$kind: http-request
+name: New Request
+url: http://localhost:3000/api/users/1
+method: DELETE
+order: 3580957932190590

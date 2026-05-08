@@ -3,5 +3,9 @@ name: Get product
 url: http://localhost:3000/api/products/:id
 method: GET
 pathVariables:
-  id: _kjWg
+  id: bTz-0
+auth:
+  type: bearer
+  credentials:
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjAsImxvZ2luIjoiMTIzQG1haWwucnUiLCJpYXQiOjE3NzU4MTA2NTMsImV4cCI6MTc3NTgxMTU1M30.WItvpD33yAjtd2eHOfjxfBwPT-pOHw4FZG827EvxsOM
 order: 4469945058184678

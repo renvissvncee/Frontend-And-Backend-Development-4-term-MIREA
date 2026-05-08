@@ -1,0 +1,537 @@
+const express = require('express');
+const { nanoid } = require('nanoid');
+const bcrypt = require('bcrypt')
+const jwt = require("jsonwebtoken");
+const cors = require("cors");
+
+// Подключение Redis
+const { createClient } = require("redis");
+
+const app = express();
+const port = 3000;
+
+// Создание Redis клиента
+const redisClient = createClient({
+    url: 'redis://localhost:6379'
+});
+
+redisClient.on('error', (err) => console.error('Redis Client Error', err));
+
+// Подключение к Redis при старте
+redisClient.connect();
+
+app.use(cors({
+    origin: "http://localhost:5173",
+    credentials: true
+}));
+
+
+// Логирование
+app.use((req, res, next) => {
+    res.on('finish', () => {
+        console.log(`\n[${new Date().toISOString()}] [${req.method}] ${res.statusCode} ${req.path}`)
+        if (req.method == 'PATCH' || req.method == 'PUT' || req.method == 'POST') {
+            console.log('Body:', req.body);
+        }
+    });
+    next();
+})
+
+app.use(express.json());
+
+// Время хранения кэша
+const USERS_CACHE_TTL = 60;      // 1 минута для пользователей
+const PRODUCTS_CACHE_TTL = 600;  // 10 минут для товаров
+
+const ACCESS_SECRET = "access_secret";
+const REFRESH_SECRET = "refresh_secret";
+
+const ACCESS_EXPIRES_IN = "15m";
+const REFRESH_EXPIRES_IN = "7d";
+
+const refreshTokens = new Set();
+
+function generateAccessToken(user) {
+    return jwt.sign(
+        {
+            sub: user.id,
+            login: user.email,
+            role: user.role
+        },
+        ACCESS_SECRET,
+        {
+            expiresIn: ACCESS_EXPIRES_IN
+        }
+    );
+}
+
+function generateRefreshToken(user) {
+    return jwt.sign(
+        {
+            sub: user.id,
+            login: user.email,
+            role: user.role
+        },
+        REFRESH_SECRET,
+        {
+            expiresIn: REFRESH_EXPIRES_IN
+        }
+    );
+}
+
+function authMiddleware(req, res, next) {
+    const header = req.headers.authorization || "";
+
+    const [ scheme, token ] = header.split(" ");
+    
+    if (scheme !== "Bearer" || !token) {
+        return res.status(401).json({ error: "Missing or invalid Authorization header"});
+    }
+
+    try {
+        const payload = jwt.verify(token, ACCESS_SECRET);
+
+        req.user = payload;
+        next();
+    } catch (err) {
+        return res.status(401).json({ error: "Invalid or expired token"});
+    }
+}
+
+function roleMiddleware(allowedRoles) {
+    return (req, res, next) => {
+        if (!req.user || !allowedRoles.includes(req.user.role)) {
+            return res.status(403).json({
+                error: "Forbidden"
+            });
+        }
+        next();
+    };
+}
+
+// Middleware для чтения из кэша
+function cacheMiddleware(keyBuilder, ttl) {
+    return async (req, res, next) => {
+        try {
+            const key = keyBuilder(req);
+            const cachedData = await redisClient.get(key);
+            if (cachedData) {
+                return res.json({
+                    source: "cache",
+                    data: JSON.parse(cachedData)
+                });
+            }
+            req.cacheKey = key;
+            req.cacheTTL = ttl;
+            next();
+        } catch (err) {
+            console.error("Cache read error:", err);
+            next();
+        }
+    };
+}
+
+// Функция сохранения в кэш
+async function saveToCache(key, data, ttl) {
+    try {
+        await redisClient.set(key, JSON.stringify(data), {
+            EX: ttl
+        });
+    } catch (err) {
+        console.error("Cache save error:", err);
+    }
+}
+
+// Функция очистки кэша пользователей
+async function invalidateUsersCache(userId = null) {
+    try {
+        await redisClient.del("users:all");
+        if (userId) {
+            await redisClient.del(`users:${userId}`);
+        }
+    } catch (err) {
+        console.error("Users cache invalidate error:", err);
+    }
+}
+
+// Функция очистки кэша товаров
+async function invalidateProductsCache(productId = null) {
+    try {
+        await redisClient.del("products:all");
+        if (productId) {
+            await redisClient.del(`products:${productId}`);
+        }
+    } catch (err) {
+        console.error("Products cache invalidate error:", err);
+    }
+}
+
+app.get("/api/auth/me", authMiddleware, (req, res) => {
+    const userId = req.user.sub;
+
+    const user = users.find(u => u.id == userId);
+    if (!user) {
+        return res.status(404).json({ error: "User not found"});
+    }
+
+    res.json(user);
+});
+
+function hashPassword(password) {
+    const rounds = 10;
+    return bcrypt.hashSync(password, rounds);
+}
+
+function verifyPassword(newPassword, user) {
+    if (!bcrypt.compareSync(newPassword, user.hashedPassword)) {
+        return false;
+    }
+    return true;
+}
+
+testPassword = hashPassword("123");
+let testUser = {
+    id: 0,
+    email: "123@mail.ru",
+    first_name: "Artem",
+    last_name: "Renv",
+    hashedPassword: testPassword,
+    role: "admin"
+};
+
+let users = [testUser];
+
+testProduct1 = {
+    id: nanoid(5),
+    title: "Арбуз",
+    category: "Фрукты",
+    description: "Очень вкусный",
+    price: 100
+}
+
+testProduct2 = {
+    id: nanoid(5),
+    title: "Банан",
+    category: "Фрукты",
+    description: "Очень сладкий",
+    price: 200
+}
+let products = [testProduct1, testProduct2];
+
+
+
+app.post('/api/auth/register', (req, res) => {
+    const { email, first_name, last_name, password, role } = req.body;
+
+    if (!email || !first_name || !last_name || !password) {
+        return res.status(400).json({ error: "All fields are required" });
+    }
+
+    trimmedEmail = email.trim();
+    trimmedFirstName = first_name.trim();
+    trimmedLastName = last_name.trim();
+
+    if (!trimmedEmail || !trimmedFirstName || !trimmedLastName) {
+        return res.status(400).json({ error: "Fields cannot be empty" });
+    }
+
+    if (users.find(u => u.email === trimmedEmail)) {
+        return res.status(409).json({ error: "User already exists"});
+    }
+
+    let newUser = {
+        id: users.length + 1,
+        email: trimmedEmail,
+        first_name: trimmedFirstName,
+        last_name: trimmedLastName,
+        hashedPassword: hashPassword(password),
+        role: role || "user"
+    };
+
+    users.push(newUser);
+
+    // Очистка кэша при регистрации нового пользователя
+    invalidateUsersCache();
+
+    res.status(201).json(newUser);
+});
+
+app.post('/api/auth/login', (req, res) => {
+    const { login, password } = req.body;
+
+    if (!login || !password) {
+        return res.status(400).json({error: 'Email and password are required'});
+    }
+
+    const user = users.find(u => u.email === login);
+    if (!user) {
+        return res.status(404).json({ error: "User not found"});
+    }
+    else if (!verifyPassword(password, user)) {
+        return res.status(401).json({ error: "Not authorized"});
+    }
+    
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
+    refreshTokens.add(refreshToken);
+
+    res.status(200).json({ accessToken, refreshToken });
+});
+
+
+app.post("/api/auth/refresh", (req, res) => {
+    const { refreshToken } = req.body;
+    
+    if (!refreshToken) {
+        return res.status(400).json({ error: "refresh token is required"});
+    }
+
+    if (!refreshTokens.has(refreshToken)) {
+        return res.status(401).json({ error: "Invalid refresh token"});
+    }
+
+    try {
+        const payload = jwt.verify(refreshToken, REFRESH_SECRET);
+
+        const user = users.find(u => u.id === payload.sub);
+        if (!user) {
+            return res.status(401).json({ error: "User not found"});
+        }
+
+        refreshTokens.delete(refreshToken);
+
+        const newAccessToken = generateAccessToken(user);
+        const newRefreshToken = generateRefreshToken(user);
+
+        refreshTokens.add(newRefreshToken);
+
+        res.json({
+            accessToken: newAccessToken,
+            refreshToken: newRefreshToken
+        });
+    } catch (err) {
+        return res.status(401).json({ error: "Invalid or expired token"});
+    }
+});
+
+
+app.post('/api/products', authMiddleware, roleMiddleware(["seller"]), (req, res) => {
+    const { title, category, description, price } = req.body;
+
+    if (!title || !category || !description || price === undefined) {
+        return res.status(400).json({ error: "All fields are required" });
+    }
+
+    const trimmedTitle = title.trim();
+    const trimmedCategory = category.trim();
+    const trimmedDescription = description.trim();
+    const parsedPrice = Number(price);
+
+    if (!trimmedTitle || !trimmedCategory || !trimmedDescription || isNaN(parsedPrice)) {
+        return res.status(400).json({ error: "Fields cannot be empty" });
+    }
+
+    if (products.find(p => p.title === trimmedTitle)) {
+        return res.status(409).json({ error: "Product already exists" });
+    }
+
+    let newProduct = {
+        id: nanoid(5),
+        title: trimmedTitle,
+        category: trimmedCategory,
+        description: trimmedDescription,
+        price: parsedPrice
+    }
+
+    products.push(newProduct);
+
+    // Очистка кэша товаров при создании нового товара
+    invalidateProductsCache();
+
+    res.status(201).json(newProduct);
+
+});
+
+// Добавлен cacheMiddleware для GET /api/products
+app.get('/api/products', authMiddleware, roleMiddleware(["user", "seller", "admin"]), 
+    cacheMiddleware(() => "products:all", PRODUCTS_CACHE_TTL),
+    async (req, res) => {
+        const data = products;
+        await saveToCache(req.cacheKey, data, req.cacheTTL);
+        res.json({
+            source: "server",
+            data
+        });
+    }
+);
+
+// Добавлен cacheMiddleware для GET /api/products/:id
+app.get('/api/products/:id', authMiddleware, roleMiddleware(["user", "seller", "admin"]), 
+    cacheMiddleware((req) => `products:${req.params.id}`, PRODUCTS_CACHE_TTL),
+    async (req, res) => {
+        const product = products.find(p => p.id == req.params.id);
+        if (!product) {
+            return res.status(404).json({ error: "Product not found" });
+        }
+        await saveToCache(req.cacheKey, product, req.cacheTTL);
+        res.json({
+            source: "server",
+            data: product
+        });
+    }
+);
+
+// Добавлен cacheMiddleware для GET /api/users
+app.get('/api/users', authMiddleware, roleMiddleware(["admin"]), 
+    cacheMiddleware(() => "users:all", USERS_CACHE_TTL),
+    async (req, res) => {
+        const data = users.map(u => ({
+            id: u.id,
+            email: u.email,
+            first_name: u.first_name,
+            last_name: u.last_name,
+            role: u.role
+        }));
+        await saveToCache(req.cacheKey, data, req.cacheTTL);
+        res.json({
+            source: "server",
+            data
+        });
+    }
+);
+
+// Добавлен cacheMiddleware для GET /api/users/:id
+app.get('/api/users/:id', authMiddleware, roleMiddleware(["admin"]), 
+    cacheMiddleware((req) => `users:${req.params.id}`, USERS_CACHE_TTL),
+    async (req, res) => {
+        const user = users.find(u => u.id == req.params.id);
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+        const data = {
+            id: user.id,
+            email: user.email,
+            first_name: user.first_name,
+            last_name: user.last_name,
+            role: user.role
+        };
+        await saveToCache(req.cacheKey, data, req.cacheTTL);
+        res.json({
+            source: "server",
+            data
+        });
+    }
+);
+
+function updateUserRole(user, role, res) {
+    if (role !== undefined) {
+        const allowedRoles = ["user", "seller", "admin"];
+
+        if (!allowedRoles.includes(role)) {
+            res.status(400).json({ error: "Invalid role" });
+            return false;
+        }
+
+        user.role = role;
+    }
+
+    return true;
+}
+
+function updateStringField(product, field, value, res) {
+    if (value !== undefined) {
+        const trimmed = value.trim();
+        if (!trimmed) {
+            res.status(400).json({ error: `${field} cannot be empty` });
+            return false;
+        }
+        product[field] = trimmed;
+    }
+    return true;
+}
+
+function updatePrice(product, price, res) {
+    if (price !== undefined) {
+        const parsed = Number(price);
+        if (isNaN(parsed)) {
+            res.status(400).json({ error: "Price must be a number" });
+            return false;
+        }
+        product.price = parsed;
+    }
+    return true;
+}
+
+// Добавлена очистка кэша при обновлении пользователя
+app.put('/api/users/:id', authMiddleware, roleMiddleware(["admin"]), async (req, res) => {
+    const user = users.find(u => u.id == req.params.id);
+    if (!user) {
+        return res.status(404).json({ error: "User not found" });
+    }
+
+    const { email, first_name, last_name, role } = req.body;
+
+    if (!updateStringField(user, "email", email, res)) return;
+    if (!updateStringField(user, "first_name", first_name, res)) return;
+    if (!updateStringField(user, "last_name", last_name, res)) return;
+    if (!updateUserRole(user, role, res)) return;
+
+    await invalidateUsersCache(user.id);
+
+    res.status(200).json(user);
+});
+
+app.get('/api', (req, res) => {
+    res.status(200).send('Главная страница');
+});
+
+// Добавлена очистка кэша при обновлении товара
+app.put('/api/products/:id', authMiddleware, roleMiddleware(["seller"]), async (req, res) => {
+    const { title, category, description, price } = req.body;
+
+    const product = products.find(p => p.id == req.params.id);
+    if (!product) {
+        return res.status(404).json({ error: "Product not found" });
+    }
+
+    if (!updateStringField(product, 'title', title, res)) return;
+    if (!updateStringField(product, 'category', category, res)) return;
+    if (!updateStringField(product, 'description', description, res)) return;
+    if (!updatePrice(product, price, res)) return;
+    
+    await invalidateProductsCache(product.id);
+
+    res.status(200).json(product);
+}); 
+
+// Добавлена очистка кэша при удалении товара
+app.delete('/api/products/:id', authMiddleware, roleMiddleware(["admin"]), async (req, res) => {
+    const product = products.find(p => p.id == req.params.id);
+    if (!product) {
+        return res.status(404).json({ error: "Product not found" });
+    }
+
+    products = products.filter(p => p.id !== req.params.id);
+    
+    await invalidateProductsCache(product.id);
+    
+    res.status(204).send();
+});
+
+// Добавлена очистка кэша при удалении пользователя
+app.delete('/api/users/:id', authMiddleware, roleMiddleware(["admin"]), async (req, res) => {
+    const user = users.find(u => u.id == req.params.id);
+    if (!user) {
+        return res.status(404).json({ error: "User not found" });
+    }
+
+    users = users.filter(u => u.id != req.params.id);
+    
+    await invalidateUsersCache(user.id);
+    
+    res.status(204).send();
+});
+
+app.listen(port, () => {
+    console.log(`Сервер запущен на http://localhost:${port}`);
+});
